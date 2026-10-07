@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Script Shelf",
+  "version": "0.4.0",
+  "description": "Run personal scripts from a centered command palette.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+    "incognito": "spanning",
+
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Script Shelf"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Z",
+        "mac": "Alt+Z"
+      }
+    }
+  }
+}
