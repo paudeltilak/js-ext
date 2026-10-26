@@ -5,6 +5,7 @@
   const CLOSE_HANDLER_KEY = "__scriptShelfCloseOverlay";
   const USAGE_STORAGE_KEY = "scriptShelfUsageStats";
   const RUN_SCRIPT_MESSAGE = "script-shelf:run";
+  const LIST_SCRIPTS_MESSAGE = "script-shelf:list-available";
 
   if (typeof globalThis[CLOSE_HANDLER_KEY] === "function") {
     globalThis[CLOSE_HANDLER_KEY]();
@@ -438,9 +439,27 @@
 
   window.addEventListener("resize", handleResize, { passive: true });
 
-  renderButtonList(allList, scripts);
-  initializeQuickAccess();
+  initializeCatalog();
   searchInput.focus();
+
+  async function initializeCatalog() {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: LIST_SCRIPTS_MESSAGE
+      });
+      if (response?.ok && Array.isArray(response.filenames)) {
+        const available = new Set(response.filenames);
+        scripts.splice(0, scripts.length,
+          ...scripts.filter((script) => available.has(script.filename))
+        );
+      }
+    } catch (error) {
+      console.warn("Could not check available script files:", error);
+    }
+
+    renderButtonList(allList, scripts);
+    initializeQuickAccess();
+  }
 
   async function initializeQuickAccess() {
     const candidates = await getQuickAccessCandidates();

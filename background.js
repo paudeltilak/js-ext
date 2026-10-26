@@ -4,11 +4,10 @@ importScripts("catalog.js");
 
 const USAGE_STORAGE_KEY = "scriptShelfUsageStats";
 const RUN_SCRIPT_MESSAGE = "script-shelf:run";
+const LIST_SCRIPTS_MESSAGE = "script-shelf:list-available";
 
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab?.id) {
-    return;
-  }
+  if (!tab?.id) return;
 
   try {
     await chrome.scripting.executeScript({
@@ -22,18 +21,23 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== RUN_SCRIPT_MESSAGE) {
-    return false;
+  if (message?.type === LIST_SCRIPTS_MESSAGE) {
+    listAvailableScripts()
+      .then((filenames) => sendResponse({ ok: true, filenames }))
+      .catch((error) => sendResponse({
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      }));
+    return true;
   }
+
+  if (message?.type !== RUN_SCRIPT_MESSAGE) return false;
 
   const tabId = sender.tab?.id;
   const filename = message.filename;
 
   if (!tabId || !isAllowedScript(filename)) {
-    sendResponse({
-      ok: false,
-      error: "That script is not available."
-    });
+    sendResponse({ ok: false, error: "That script is not available." });
     return false;
   }
 
@@ -58,7 +62,36 @@ function isAllowedScript(filename) {
   );
 }
 
+// Catalog entries for scripts not bundled in this ZIP stay hidden until those
+// files are copied into the scripts/ directory and the extension is reloaded.
+async function listAvailableScripts() {
+  const candidates = Array.isArray(globalThis.SCRIPT_CATALOG)
+    ? globalThis.SCRIPT_CATALOG.filter((filename) =>
+        typeof filename === "string" &&
+        /^[a-zA-Z0-9_-]+\.js$/.test(filename)
+      )
+    : [];
+
+  const availability = await Promise.all(
+    candidates.map(async (filename) => {
+      try {
+        const response = await fetch(chrome.runtime.getURL(`scripts/${filename}`));
+        return response.ok;
+      } catch {
+        return false;
+      }
+    })
+  );
+
+  return candidates.filter((_, index) => availability[index]);
+}
+
 async function runScriptAndRemember(tabId, filename) {
+  const available = await listAvailableScripts();
+  if (!available.includes(filename)) {
+    throw new Error("This script file is not installed in scripts/.");
+  }
+
   await chrome.scripting.executeScript({
     target: { tabId },
     files: [`scripts/${filename}`],
@@ -74,22 +107,16 @@ async function rememberScriptUse(filename) {
   const previous = stats[filename];
 
   stats[filename] = {
-    count:
-      previous && Number.isFinite(previous.count)
-        ? previous.count + 1
-        : 1,
+    count: previous && Number.isFinite(previous.count) ? previous.count + 1 : 1,
     lastUsed: Date.now()
   };
 
-  await chrome.storage.local.set({
-    [USAGE_STORAGE_KEY]: stats
-  });
+  await chrome.storage.local.set({ [USAGE_STORAGE_KEY]: stats });
 }
 
 function normalizeStats(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
-
   return value;
 }
