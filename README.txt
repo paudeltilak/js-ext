@@ -24,6 +24,8 @@ HOW IT WORKS
 - Hold Option (Alt) and hover to outline a paragraph in red.
 - Option+click colors alternating sentences, as in the original script.
 - Option+Z continues to open the Script Shelf command palette immediately.
+- Press Enter in the search box to run the first script in the current list,
+  including Quick Access immediately after opening with Option+Z.
 - Escape clears the temporary outline; it no longer permanently disables the
   automatically loaded feature.
 - Links, buttons, form controls, and Script Shelf's own menu are exempt from

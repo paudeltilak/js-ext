@@ -23,7 +23,9 @@ globalThis.SCRIPT_CATALOG = [
 "nowrap_toggle.js",
 "contenteditable.js",
 "einthusan.js",
-"einthusan2.js"
+"einthusan2.js",
+"amazon_sort.js",
+"show_links_of_div.js"
 
 
 

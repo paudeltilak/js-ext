@@ -405,8 +405,11 @@
   });
 
   searchInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && currentView === "search") {
-      const firstButton = searchList.querySelector("button");
+    if (event.key === "Enter") {
+      const activeList = currentView === "search"
+        ? searchList
+        : currentView === "browse" ? allList : quickList;
+      const firstButton = activeList.querySelector("button");
       if (firstButton) {
         event.preventDefault();
         firstButton.click();
